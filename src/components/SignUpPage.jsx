@@ -6,6 +6,10 @@ import axios from "axios";
 import { useNavigate } from "react-router";
 // Define Zod schema for validation
 const signupSchema = z.object({
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters long")
+    .nonempty("Username is required"),
   email: z
     .string()
     .email("Invalid email address")
@@ -32,28 +36,53 @@ export default function SignupPage() {
   });
 
   const onSubmit = async (data) => {
-    const { email, password } = data;
 
+    const { username, email, password } = data;
     try {
-      const response = await axios.post("http://localhost:5000/signup", {
-        email,
-        password,
-      });
+      const response = await axios.post(
+        "http://localhost:5000/signup", // change https to http if needed
+        { username,email, password },
+        { withCredentials: true }
+      );
       alert("Signup successful!");
       console.log(response.data);
+      navigate("/signin");
     } catch (error) {
       alert("Signup failed. Please try again.");
       console.error(error);
     }
   };
-const navigate = useNavigate();
+
+  const navigate = useNavigate();
+
   return (
     <div className="max-w-md mx-auto mt-24 bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
       <h1 className="text-xl font-bold text-center mb-4">Signup Form</h1>
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className=""
-      >
+      <form onSubmit={handleSubmit(onSubmit)} className="">
+        {/* Username Field */}
+        <div className="mb-4">
+          <label
+            className="block text-gray-700 text-sm font-bold mb-2"
+            htmlFor="username"
+          >
+            Username
+          </label>
+          <input
+            {...register("username")}
+            type="text"
+            id="username"
+            className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
+              errors.username ? "border-red-500" : ""
+            }`}
+          />
+          {errors.username && (
+            <p className="text-red-500 text-xs italic mt-2">
+              {errors.username.message}
+            </p>
+          )}
+        </div>
+
+        {/* Email Field */}
         <div className="mb-4">
           <label
             className="block text-gray-700 text-sm font-bold mb-2"
@@ -76,6 +105,7 @@ const navigate = useNavigate();
           )}
         </div>
 
+        {/* Password Field */}
         <div className="mb-4">
           <label
             className="block text-gray-700 text-sm font-bold mb-2"
@@ -98,6 +128,7 @@ const navigate = useNavigate();
           )}
         </div>
 
+        {/* Confirm Password Field */}
         <div className="mb-6">
           <label
             className="block text-gray-700 text-sm font-bold mb-2"
@@ -120,6 +151,7 @@ const navigate = useNavigate();
           )}
         </div>
 
+        {/* Submit Button */}
         <div className="flex items-center justify-between">
           <button
             type="submit"
@@ -130,11 +162,11 @@ const navigate = useNavigate();
         </div>
       </form>
       <button
-            onClick={() => navigate("/")} // Navigate to SignupPage
-            className="mt-4 w-full bg-gray-500 text-white py-2 px-2 rounded-md hover:bg-gray-600"
-          >
-            Go to SignIn
-          </button>
+        onClick={() => navigate("/signin")} // Navigate to SignIn page
+        className="mt-4 w-full bg-gray-500 text-white py-2 px-2 rounded-md hover:bg-gray-600"
+      >
+        Go to SignIn
+      </button>
     </div>
   );
 }
