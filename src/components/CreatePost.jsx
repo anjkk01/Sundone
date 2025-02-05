@@ -1,28 +1,41 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { Button, Card, CardContent, Typography, Box, CircularProgress, Snackbar, Alert } from "@mui/material";
+import { CloudUpload, Image, VideoLibrary } from "@mui/icons-material";
 
 const CreatePost = () => {
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [preview, setPreview] = useState(null);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    // Validate file type (image or video)
+
     if (selectedFile) {
       const fileType = selectedFile.type.split("/")[0];
       if (fileType !== "image" && fileType !== "video") {
         setError("Only images and videos are allowed.");
-        setFile(null); // Clear the file state
+        setFile(null);
         return;
       }
-      // Validate file size (limit to 10MB)
+
       if (selectedFile.size > 10 * 1024 * 1024) {
         setError("File size should be less than 10MB.");
-        setFile(null); // Clear the file state
+        setFile(null);
         return;
       }
+
       setError("");
       setFile(selectedFile);
+
+      // Set preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result);
+      };
+      reader.readAsDataURL(selectedFile);
     }
   };
 
@@ -30,48 +43,94 @@ const CreatePost = () => {
     e.preventDefault();
 
     if (!file) {
-      alert("Please select a file.");
+      setError("Please select a file before uploading.");
       return;
     }
 
+    setLoading(true);
     const formData = new FormData();
     formData.append("file", file);
 
     try {
       const response = await axios.post("http://localhost:5000/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
         withCredentials: true,
       });
 
-      alert("File uploaded successfully.");
+      setSuccessMessage("File uploaded successfully!");
       console.log(response.data);
+      setFile(null);
+      setPreview(null);
     } catch (error) {
       console.error("Error uploading file", error);
-      alert("File upload failed.");
+      setError("File upload failed.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-96">
-        <h1 className="text-xl font-semibold text-center mb-4">Upload Media</h1>
-        <input
-          type="file"
-          accept="image/*,video/*"
-          onChange={handleFileChange}
-          className="block w-full text-gray-700 border border-gray-300 rounded-md mb-4 p-2"
-        />
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition"
-        >
-          Upload File
-        </button>
-      </form>
-    </div>
+    <Box className="flex justify-center items-center h-screen bg-gray-100">
+      <Card sx={{ width: 400, p: 3, boxShadow: 3, borderRadius: 2 }}>
+        <CardContent>
+          <Typography variant="h5" align="center" fontWeight="bold" gutterBottom>
+            Upload Media
+          </Typography>
+
+          {/* File Upload Input */}
+          <input
+            type="file"
+            accept="image/*,video/*"
+            onChange={handleFileChange}
+            style={{ display: "none" }}
+            id="file-input"
+          />
+          <label htmlFor="file-input">
+            <Button
+              fullWidth
+              component="span"
+              variant="outlined"
+              startIcon={<CloudUpload />}
+              sx={{ my: 2 }}
+            >
+              Choose File
+            </Button>
+          </label>
+
+          {/* File Preview */}
+          {preview && (
+            <Box className="flex justify-center mb-4">
+              {file.type.startsWith("image") ? (
+                <img src={preview} alt="preview" className="w-32 h-32 object-cover rounded" />
+              ) : (
+                <video src={preview} className="w-32 h-32 rounded" controls />
+              )}
+            </Box>
+          )}
+
+          {error && (
+            <Typography color="error" fontSize="14px" align="center" sx={{ mb: 2 }}>
+              {error}
+            </Typography>
+          )}
+
+          {/* Upload Button */}
+          <Button
+            fullWidth
+            variant="contained"
+            color="primary"
+            startIcon={file ? (file.type.startsWith("image") ? <Image /> : <VideoLibrary />) : null}
+            onClick={handleSubmit}
+            disabled={loading}>{loading ? <CircularProgress size={24} color="inherit" /> : "Upload File"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Success Message */}
+      <Snackbar open={!!successMessage} autoHideDuration={3000} onClose={() => setSuccessMessage("")}>
+        <Alert severity="success">{successMessage}</Alert>
+      </Snackbar>
+    </Box>
   );
 };
 
