@@ -5,6 +5,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { useNavigate } from "react-router";
 import debounce from "lodash.debounce";
+import {
+  TextField,
+  List,
+  ListItem,
+  ListItemButton,
+  Typography,
+  CircularProgress,
+  Paper,
+} from "@mui/material";
 
 // Define the Zod schema for validation
 const usernameSchema = z.object({
@@ -19,18 +28,18 @@ const UserSearch = () => {
   });
   const navigate = useNavigate();
 
-  // Function to fetch usernames from the API (sending body with GET)
+  // Function to fetch usernames from the API
   const fetchUsernames = async (username) => {
-    if (!username.trim()) return; // Don't make a request if the query is empty
+    if (!username.trim()) return; // Prevent empty request
     
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:5000/searchuser", // change https to http if needed
+        "http://localhost:5000/searchuser",
         { SearchUser: username },
         { withCredentials: true }
       );
-      setResults(response.data.usernames); // Assuming the API returns a list of usernames
+      setResults(response.data.usernames); // Assuming API returns a list of usernames
     } catch (error) {
       console.error("Error fetching usernames:", error);
     } finally {
@@ -38,52 +47,61 @@ const UserSearch = () => {
     }
   };
 
-  const debouncedFetchUsernames = debounce(fetchUsernames, 500); // Debounce for 500ms
+  const debouncedFetchUsernames = debounce(fetchUsernames, 500);
 
   const handleUsernameClick = (username) => {
-    console.log(`Clicked on username: ${username}`);
-    navigate(`/userprofile/${username}`); // Navigate to user profile page
+    navigate(`/userprofile/${username}`);
   };
 
   // Trigger search query on input change
   const handleChange = (e) => {
-    setValue("username", e.target.value); // Update form value
-    debouncedFetchUsernames(e.target.value); // Call the debounced function
+    setValue("username", e.target.value);
+    debouncedFetchUsernames(e.target.value);
   };
 
-  // Clear results when the component mounts (search query is empty initially)
   useEffect(() => {
-    setResults([]);
+    setResults([]); // Clear results on mount
   }, []);
 
   return (
-    <div className="p-4">
+    <Paper
+      elevation={3}
+      sx={{
+        p: 3,
+        maxWidth: 400,
+        mx: "auto",
+        mt: 4,
+        borderRadius: 2,
+        backgroundColor: "#f9f9f9",
+      }}
+    >
       <form>
-        <input
-          type="text"
+        <TextField
+          fullWidth
+          variant="outlined"
+          label="Search for a username"
           {...register("username")}
-          placeholder="Search for a username"
-          className="border p-2 rounded w-full"
-          onChange={handleChange} // Trigger search on input change
+          error={!!errors.username}
+          helperText={errors.username?.message}
+          onChange={handleChange}
+          sx={{ mb: 2 }}
         />
-        {errors.username && <p className="text-red-500">{errors.username.message}</p>}
       </form>
 
-      {isLoading && <p>Loading...</p>}
+      {isLoading && <CircularProgress size={24} sx={{ display: "block", mx: "auto", my: 2 }} />}
 
-      <ul className="mt-2">
+      <List>
         {results.map((user) => (
-          <li key={user} className="mt-1">
-            <button
-              onClick={() => handleUsernameClick(user)}
-              className="text-blue-600 hover:underline"
-            >
-              {user}
-            </button>
-          </li>
+          <ListItem key={user} disablePadding>
+            <ListItemButton onClick={() => handleUsernameClick(user)}>
+              <Typography variant="body1" color="primary">
+                {user}
+              </Typography>
+            </ListItemButton>
+          </ListItem>
         ))}
-      </ul>
-    </div>
+      </List>
+    </Paper>
   );
 };
 

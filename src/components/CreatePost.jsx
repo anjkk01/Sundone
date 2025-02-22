@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { Button, Card, CardContent, Typography, Box, CircularProgress, Snackbar, Alert } from "@mui/material";
+import { Button, Card, CardContent, Typography, Box, CircularProgress, Snackbar, Alert, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { CloudUpload, Image, VideoLibrary } from "@mui/icons-material";
 
 const CreatePost = () => {
@@ -9,6 +9,7 @@ const CreatePost = () => {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [preview, setPreview] = useState(null);
+  const [uploadType, setUploadType] = useState("post");
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -39,6 +40,12 @@ const CreatePost = () => {
     }
   };
 
+  const handleUploadTypeChange = (event, newType) => {
+    if (newType !== null) {
+      setUploadType(newType);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -51,13 +58,15 @@ const CreatePost = () => {
     const formData = new FormData();
     formData.append("file", file);
 
+    const endpoint = uploadType === "post" ? "http://localhost:5000/upload" : "http://localhost:5000/createstory";
+
     try {
-      const response = await axios.post("http://localhost:5000/upload", formData, {
+      const response = await axios.post(endpoint, formData, {
         headers: { "Content-Type": "multipart/form-data" },
         withCredentials: true,
       });
 
-      setSuccessMessage("File uploaded successfully!");
+      setSuccessMessage(`File uploaded successfully as a ${uploadType}!`);
       console.log(response.data);
       setFile(null);
       setPreview(null);
@@ -76,6 +85,18 @@ const CreatePost = () => {
           <Typography variant="h5" align="center" fontWeight="bold" gutterBottom>
             Upload Media
           </Typography>
+
+          {/* Upload Type Selection */}
+          <ToggleButtonGroup
+            value={uploadType}
+            exclusive
+            onChange={handleUploadTypeChange}
+            fullWidth
+            sx={{ mb: 2 }}
+          >
+            <ToggleButton value="post">Upload as Post</ToggleButton>
+            <ToggleButton value="story">Upload as Story</ToggleButton>
+          </ToggleButtonGroup>
 
           {/* File Upload Input */}
           <input
@@ -121,13 +142,15 @@ const CreatePost = () => {
             color="primary"
             startIcon={file ? (file.type.startsWith("image") ? <Image /> : <VideoLibrary />) : null}
             onClick={handleSubmit}
-            disabled={loading}>{loading ? <CircularProgress size={24} color="inherit" /> : "Upload File"}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} color="inherit" /> : `Upload ${uploadType}`}
           </Button>
         </CardContent>
       </Card>
 
       {/* Success Message */}
-      <Snackbar open={!!successMessage} autoHideDuration={3000} onClose={() => setSuccessMessage("")}>
+      <Snackbar open={!!successMessage} autoHideDuration={3000} onClose={() => setSuccessMessage("")}>        
         <Alert severity="success">{successMessage}</Alert>
       </Snackbar>
     </Box>
