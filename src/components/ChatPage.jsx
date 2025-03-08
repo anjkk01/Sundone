@@ -1,56 +1,143 @@
-import React, { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+// ChatPage.js
+import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 
-const ChatPage = () => {
-const [message, setMessage] = useState("");
+// URL to your Socket.io server
+const SOCKET_URL = 'http://localhost:5000';
+
+// Custom hook to handle socket connection
+function useSocket(userId, accessToken, refreshToken) {
+  const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [roomId, setroomId] = useState(0);
-  // Initialize the socket connection
-  useEffect(() => {
-    const socket = io("http://localhost:3000"); // Replace with your server URL
 
-    // Listen for incoming messages
-    socket.on("message", (data) => {
-      setMessages((prevMessages) => [...prevMessages, data]);
+  useEffect(() => {
+    if (!userId || !accessToken || !refreshToken) return;
+
+    // Connect to the socket server with auth tokens
+    const newSocket = io(SOCKET_URL, {
+      auth: { token: accessToken, refreshToken },
+      withCredentials: true,
     });
 
-    // Cleanup on component unmount
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+    newSocket.on('connect', () => {
+      console.log('Connected to server. Socket ID:', newSocket.id);
+      // Optionally, emit a login event if your server expects it:
+      newSocket.emit('login', { userId });
+    });
 
-  const sendMessage = () => {
-    const socket = io("http://localhost:3000");
-    socket.emit("message", message);
-    setMessage("");
+    // Listen for refreshed token from the server
+    newSocket.on('tokenRefreshed', (data) => {
+      console.log('Received new access token:', data.accessToken);
+      // You might update your global state/context with the new token here.
+    });
+
+    // Listen for incoming chat messages
+    newSocket.on('chatMessage', (message) => {
+      console.log('Received message:', message);
+      setMessages((prevMessages) => [...prevMessages, message]);
+    });
+
+    setSocket(newSocket);
+
+    return () => newSocket.disconnect();
+  }, [userId, accessToken, refreshToken]);
+
+  // Function to send a chat message
+  const sendMessage = (recipientId, message) => {
+    if (socket) {
+      socket.emit('chatMessage', { senderId: userId, recipientId, message });
+    }
   };
-  const changeroomId = () => {
-  };
-  return (
-    <div style={{ padding: "20px" }}>
-      <h1>Socket.IO Chat</h1>
-      <div style={{ border: "1px solid #ccc", padding: "10px", marginBottom: "10px" }}>
-        {messages.map((msg, index) => (
-          <p key={index}>{msg}</p>
-        ))}
-      </div>
-      <input
-        type="text"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type a message"
-      />
-      <button onClick={sendMessage}>Send</button>
-      <input
-        type="text"
-        value={roomId}
-        onChange={(e) => setroomId(e.target.value)}
-        placeholder="Type your Room ID"
-      />
-      <button onClick={changeroomId}>Connect</button>
-    </div>
-  )
+
+  return { socket, messages, sendMessage };
 }
 
-export default ChatPage
+const ChatPage = () => {
+  // For demo purposes, we're using static values.
+  // In a real application these would come from your auth context or state.
+  const userId = 'myUser';
+  const accessToken = 'dummyAccessToken';
+  const refreshToken = 'dummyRefreshToken';
+
+  // Friend list (array of usernames)
+  const friendList = ['Alice', 'Bob', 'Charlie'];
+
+  // State to track the currently selected friend for chatting
+  const [activeFriend, setActiveFriend] = useState(null);
+  // State for the current chat input text
+  const [chatInput, setChatInput] = useState('');
+
+  // Initialize socket connection using our custom hook
+  const { messages, sendMessage } = useSocket(userId, accessToken, refreshToken);
+
+  // Filter messages to show only those between the current user and the active friend
+  const filteredMessages = messages.filter((msg) => {
+    if (!activeFriend) return false;
+    return msg.senderId === activeFriend || msg.recipientId === activeFriend;
+  });
+
+  const handleSendMessage = () => {
+    if (activeFriend && chatInput.trim() !== '') {
+      sendMessage(activeFriend, chatInput);
+      setChatInput('');
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', height: '100vh' }}>
+      {/* Friend List Section */}
+      <div style={{ width: '25%', borderRight: '1px solid #ccc', padding: '1rem' }}>
+        <h3>Friends</h3>
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {friendList.map((friend, index) => (
+            <li
+              key={index}
+              style={{
+                margin: '0.5rem 0',
+                cursor: 'pointer',
+                fontWeight: activeFriend === friend ? 'bold' : 'normal'
+              }}
+              onClick={() => setActiveFriend(friend)}
+            >
+              {friend}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Chat Section */}
+      <div style={{ flex: 1, padding: '1rem', display: 'flex', flexDirection: 'column' }}>
+        <h3>
+          {activeFriend ? `Chat with ${activeFriend}` : 'Select a friend to chat'}
+        </h3>
+        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #ccc', padding: '1rem' }}>
+          {filteredMessages.length === 0 ? (
+            <p>No messages yet.</p>
+          ) : (
+            filteredMessages.map((msg, index) => (
+              <div key={index} style={{ marginBottom: '0.5rem' }}>
+                <strong>{msg.senderId}:</strong> {msg.message}
+              </div>
+            ))
+          )}
+        </div>
+        {activeFriend && (
+          <div style={{ marginTop: '1rem' }}>
+            <input
+              type="text"
+              placeholder="Type your message..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              style={{ width: '80%', padding: '0.5rem' }}
+            />
+            <button onClick={handleSendMessage} style={{ padding: '0.5rem 1rem', marginLeft: '0.5rem' }}>
+              Send
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ChatPage;
