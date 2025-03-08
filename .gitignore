@@ -9,11 +9,26 @@
 
 # testing
 /sundone/coverage
-
+ 
 # production
 /sundone/build
 
-# misc
+# misc# Node.js-related files
+node_modules/
+dist/
+.env
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+out/
+.next/
+.vscode/
+
 /sundone/.DS_Store
 /sundone/.env.local
 /sundone/.env.development.local
