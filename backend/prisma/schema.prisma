@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model comments_table {
+  id           Int          @id @default(autoincrement())
+  post_id      Int
+  text         String
+  created_at   DateTime?    @default(now()) @db.Timestamp(6)
+  user_id      Int
+  posts_table  posts_table  @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userid_table userid_table @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_comments_user")
+
+  @@index([post_id], map: "idx_comments_post_id")
+  @@index([user_id], map: "idx_comments_user_id")
+}
+
+model follower_table {
+  follower_id                                           Int
+  followed_id                                           Int
+  created_at                                            DateTime?    @default(now()) @db.Timestamp(6)
+  userid_table_follower_table_followed_idTouserid_table userid_table @relation("follower_table_followed_idTouserid_table", fields: [followed_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  userid_table_follower_table_follower_idTouserid_table userid_table @relation("follower_table_follower_idTouserid_table", fields: [follower_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([follower_id, followed_id])
+  @@index([followed_id], map: "idx_follower_followed_id")
+  @@index([follower_id], map: "idx_follower_follower_id")
+}
+
+model like_table {
+  id           Int          @id @default(autoincrement())
+  user_id      Int
+  post_id      Int
+  posts_table  posts_table  @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userid_table userid_table @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, post_id], map: "unique_user_post_like")
+  @@index([post_id, user_id], map: "idx_like_post_user")
+}
+
+model posts_table {
+  id             Int              @id @default(autoincrement())
+  user_id        Int
+  link           String
+  created_at     DateTime?        @default(now()) @db.Timestamp(6)
+  like_count     Int?             @default(0)
+  comments_table comments_table[]
+  like_table     like_table[]
+  userid_table   userid_table     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_posts_user_id")
+}
+
+model userid_table {
+  user_id                                                 Int              @id @default(autoincrement())
+  username                                                String           @unique @db.VarChar(50)
+  email                                                   String           @unique @db.VarChar(100)
+  password_hash                                           String           @db.VarChar(255)
+  last_seen                                               DateTime?        @default(now()) @db.Timestamp(6)
+  refresh_token                                           String?
+  followed_by                                             Int?             @default(0)
+  followers                                               Int?             @default(0)
+  description                                             String?
+  isonline                                                Boolean?         @default(false)
+  comments_table                                          comments_table[]
+  follower_table_follower_table_followed_idTouserid_table follower_table[] @relation("follower_table_followed_idTouserid_table")
+  follower_table_follower_table_follower_idTouserid_table follower_table[] @relation("follower_table_follower_idTouserid_table")
+  like_table                                              like_table[]
+  posts_table                                             posts_table[]
+  stories                                                 stories[]
+  story_viewed                                            story_viewed[]
+
+  @@index([user_id], map: "idx_user_id")
+  @@index([username], map: "idx_userid_username")
+}
+
+model stories {
+  story_id     Int            @id @default(autoincrement())
+  user_id      Int
+  url          String
+  timestamp    DateTime       @default(now()) @db.Timestamp(6)
+  expires_at   DateTime       @db.Timestamp(6)
+  userid_table userid_table   @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  story_viewed story_viewed[]
+
+  @@index([user_id, timestamp(sort: Desc)], map: "idx_user_active_stories")
+}
+
+model story_viewed {
+  story_id     Int
+  viewer_id    Int
+  viewed_at    DateTime     @default(now()) @db.Timestamp(6)
+  stories      stories      @relation(fields: [story_id], references: [story_id], onDelete: Cascade, onUpdate: NoAction)
+  userid_table userid_table @relation(fields: [viewer_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([story_id, viewer_id])
+  @@index([story_id, viewer_id], map: "idx_check_story_viewed")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model chats_table {
+  chat_id    Int       @id @default(autoincrement())
+  user_id1   Int
+  user_id2   Int
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([user_id1, user_id2])
+}
