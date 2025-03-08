@@ -1,40 +1,15 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Ignore Node.js dependencies
+sundone/node_modules/
+backend/node_modules/
 
-# dependencies
-/sundone/node_modules
-/backend/node_modules
-/backend/.env
-/sundone/.pnp
-/sundone.pnp.js
+# Environment variables
+sundone/.env
+backend/.env
 
-# testing
-/sundone/coverage
- 
-# production
-/sundone/build
+# Build files
+sundone/dist/
+backend/dist/
 
-# misc# Node.js-related files
-node_modules/
-dist/
-.env
+# OS & Editor-specific files
 .DS_Store
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Build output
-out/
-.next/
 .vscode/
-
-/sundone/.DS_Store
-/sundone/.env.local
-/sundone/.env.development.local
-/sundone/.env.test.local
-/sundone/.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
