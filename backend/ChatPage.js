@@ -1,5 +1,23 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+// const { redisClient } = require('./redisClient');
+
+const { createClient } = require("redis");
+
+// Redis Client
+const redisClient = createClient({
+  url: "redis://127.0.0.1:6379",
+});
+
+redisClient.on("error", (err) => console.error("Redis Error:", err));
+
+(async () => {
+  try {
+    await redisClient.connect();
+  } catch (err) {
+    console.error("Failed to connect to Redis:", err);
+  }
+})();
 
 const getChatIds = async (req, res) => {
     const user_id = req.user.id;
@@ -10,23 +28,23 @@ const getChatIds = async (req, res) => {
 
         const ids = await prisma.chats_table.findMany({
             where: {
-                user_id1: user_id
+              user_id1: user_id
             },
             select: {
-                user_id2: true,
-                // Fetch the username from the userid_table related to user_id2
-                user_id2_user: {
-                    select: {
-                        username: true
-                    }
+              user_id2: true,
+              user2: {
+                select: {
+                  username: true
                 }
+              }
             }
-        });
+          });
+          
 
-        const response = ids.map(chat => ({
+          const response = ids.map(chat => ({
             userId: chat.user_id2,
-            username: chat.user_id2_user.username
-        }));
+            username: chat.user2.username
+          }));
 
         return res.status(200).json({ ids: response });
     } catch (error) {
@@ -35,28 +53,86 @@ const getChatIds = async (req, res) => {
     }
 };
 
-const addToChat = async (req, res) => {
+
+const openChat = async (req,res) =>{
+
     const sender_id = req.user.id;
-    const { reciever_id } = req.body;
+    const { reciever_username } = req.params;
 
     try {
         // Validate input
-        if (!reciever_id || !sender_id) {
+        if (!reciever_username || !sender_id) {
             return res.status(400).json({ error: "Both sender_id and reciever_id are required" });
         }
 
-        await prisma.chats_table.create({
-            data: {
-                user_id1: sender_id,
-                user_id2: reciever_id
+        let reciever_body = await prisma.userid_table.findUnique({
+            where:{
+                username:reciever_username
+            },
+            select:{
+                user_id : true
             }
         });
+        if(!reciever_body){
+            return res.status(400).json({ error: "Reciever Invalid" });
+        }
+        let reciever_id = reciever_body.user_id;
+        let u1,u2;
+        if(sender_id<reciever_id){
+            u1 = sender_id;
+            u2 = reciever_id;
+        }
+        else{
+            u1 = reciever_id;
+            u2 = sender_id;
+        }
+        const redisKey = `chat-${u1}-${u2}`;
+        const messages = await redisClient.lRange(redisKey, 0, -1);
+        const parsedMessages = messages.map(msg => JSON.parse(msg));
+        return res.status(200).json({
+            message: "Chat retrieved successfully",
+            data: parsedMessages,
+        });
+    } catch (error) {
+        console.error("Error creating chat:", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
 
+}
+
+
+const addToChat = async (req, res) => {
+    const sender_id = req.user.id;
+    const { reciever_username } = req.params;
+
+    try {
+        // Validate input
+        if (!reciever_username || !sender_id) {
+            return res.status(400).json({ error: "Both sender_id and reciever_id are required" });
+        }
+        let reciever_body = await prisma.userid_table.findUnique({
+            where:{
+                username:reciever_username
+            },
+            select:{
+                user_id : true
+            }
+        });
+        if(!reciever_body){
+            return res.status(400).json({ error: "Reciever Invalid" });
+        }
+        let reciever_id = reciever_body.user_id;
         if (sender_id !== reciever_id) {
             await prisma.chats_table.create({
                 data: {
                     user_id1: reciever_id,
                     user_id2: sender_id
+                }
+            });
+            await prisma.chats_table.create({
+                data: {
+                    user_id1: sender_id,
+                    user_id2: reciever_id
                 }
             });
         }
@@ -68,4 +144,4 @@ const addToChat = async (req, res) => {
     }
 };
 
-module.exports = { addToChat, getChatIds };
+module.exports = { addToChat, getChatIds,openChat };

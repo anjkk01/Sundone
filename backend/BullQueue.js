@@ -56,8 +56,8 @@ async function gracefulShutdown() {
   process.exit(0);
 }
 
-process.on('SIGTERM', gracefulShutdown); // Handle SIGTERM (e.g., from Docker)
-process.on('SIGINT', gracefulShutdown); // Handle SIGINT (e.g., Ctrl+C)
+process.on('SIGTERM', gracefulShutdown); 
+process.on('SIGINT', gracefulShutdown);
 
 // Export the Queue for use in other files
 module.exports = { storyExpirationQueue };

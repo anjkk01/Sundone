@@ -13,9 +13,17 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: "*",
+  origin: function (origin, callback) {
+    callback(null, origin); // Reflects the request origin
+  },
   credentials: true,
 }));
+// app.use(cors({
+//   origin: "http://localhost:3000",
+//   credentials: true,
+// }));
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -37,30 +45,47 @@ const { ToggleFollow } = require("./ToggleFollow");
 const CreateStory = require("./CreateStory");
 const { Stories, ViewStoryAction } = require('./ViewStory');
 const rateLimiter = require("./RateLimiter");
-const { addToChat, getChatIds } = require('./ChatPage');
+const { addToChat, getChatIds,openChat } = require('./ChatPage');
 
-app.get("/getuser",rateLimiter, verifyJWT, getuser);
-app.post("/upload",rateLimiter, verifyJWT, uploadFile);
-app.post("/createstory",rateLimiter, verifyJWT, CreateStory);
-app.get("/postpage/:post_id",rateLimiter, verifyJWT, postpage);
+
+//Authentication Pages
 app.post("/signup",rateLimiter, signup);
 app.post("/signin",rateLimiter, signin);
-app.post("/createcomment",rateLimiter, verifyJWT, CreateCommentAction);
-app.get("/likeaction/:post_id",rateLimiter, verifyJWT, LikeAction);
-app.post("/searchuser",rateLimiter, searchuser);
-app.get("/FolloweeList",rateLimiter, verifyJWT, getFollowers);
-app.get('/feed',rateLimiter, verifyJWT, getFeed);
-app.get('/stories', rateLimiter,verifyJWT, Stories);
-app.get('/getchatids',rateLimiter,verifyJWT,getChatIds);
-app.get('/profile/:username',rateLimiter, verifyJWT, profile);
-app.post('/togglefollow',rateLimiter, verifyJWT, ToggleFollow);
-app.post('/watchstory',rateLimiter, verifyJWT, ViewStoryAction);
-app.post('/addchat',rateLimiter,verifyJWT,addToChat);
+
 app.post('/logout', (req, res) => {
   res.clearCookie("refreshToken", { httpOnly: true, secure: true, sameSite: true });
   res.clearCookie("accessToken", { httpOnly: true, secure: true, sameSite: true });
   return res.status(200).json({ message: "Logged out successfully" });
 });
+
+//User Posts and Feed
+app.post("/upload",rateLimiter, verifyJWT, uploadFile);
+app.post("/createstory",rateLimiter, verifyJWT, CreateStory);
+
+app.get('/feed',rateLimiter, verifyJWT, getFeed);
+app.get('/stories', rateLimiter,verifyJWT, Stories);
+
+
+// DM functionality (Mostly Backend)
+app.get("/chatpage",rateLimiter,verifyJWT,getChatIds);
+app.post("/Add_to_Chat/:reciever_username",rateLimiter,verifyJWT,addToChat);
+app.get("/openChat/:reciever_username",rateLimiter,verifyJWT,openChat);
+
+//User Actions
+app.post("/createcomment",rateLimiter, verifyJWT, CreateCommentAction);
+app.get("/likeaction/:post_id",rateLimiter, verifyJWT, LikeAction);
+app.post('/watchstory',rateLimiter, verifyJWT, ViewStoryAction);
+app.post('/togglefollow',rateLimiter, verifyJWT, ToggleFollow);
+app.post('/addchat',rateLimiter,verifyJWT,addToChat);
+
+//User View
+app.get("/postpage/:post_id",rateLimiter, verifyJWT, postpage);
+app.post("/searchuser",rateLimiter, searchuser);
+app.get("/FolloweeList",rateLimiter, verifyJWT, getFollowers);
+app.get("/getuser",rateLimiter, verifyJWT, getuser);
+app.get('/getchatids',rateLimiter,verifyJWT,getChatIds);
+app.get('/profile/:username',rateLimiter, verifyJWT, profile);
+
 
 const server = http.createServer(app);
 

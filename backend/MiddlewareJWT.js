@@ -7,7 +7,9 @@ const cookieParser = require("cookie-parser");
 const verifyJWT = async (req, res, next) => {
   try {
     const token = req.cookies.accessToken; // Extract from cookies or Bearer token
+
     const refreshToken = req.cookies.refreshToken; // Get refresh token from cookies or header
+
     let istoken = true;
     if(!token)istoken=false;
     if (!refreshToken) {
@@ -19,7 +21,9 @@ const verifyJWT = async (req, res, next) => {
     try {
       // Step 1: Verify access token
       const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
       req.user = decoded; // Attach user data to request
+      
       return next(); // Proceed if access token is valid
     } catch (err) {
       if (err.name === 'TokenExpiredError' || istoken===false) {

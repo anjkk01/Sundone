@@ -2,7 +2,7 @@ const redisClient = require("./redisClient"); // Import Redis connection
 
 const rateLimiter = async (req, res, next) => {
   const userKey = `rate_limit:${req.ip}:${Math.floor(Date.now() / 60000)}`; // Unique key per minute
-  const MAX_REQUESTS = 20;
+  const MAX_REQUESTS = 50;
   const EXPIRATION_TIME = 59;
 
   try {

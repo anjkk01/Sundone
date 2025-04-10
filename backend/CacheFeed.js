@@ -44,7 +44,6 @@ async function fetchFeedFromDatabase(userId){
 // Function to get user feed (first checks LRU cache)
 async function getUserFeed(userId) {
     if (feedCache.has(userId)) {
-        console.log(`Fetching feed from LRU Cache for user ${userId}`);
         return feedCache.get(userId);
     }
 

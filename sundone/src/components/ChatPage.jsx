@@ -2,18 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-// URL to your Socket.io server
 const SOCKET_URL = 'http://localhost:5000';
 
-// Custom hook to handle socket connection
 function useSocket(userId, accessToken, refreshToken) {
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
 
   useEffect(() => {
     if (!userId || !accessToken || !refreshToken) return;
-
-    // Connect to the socket server with auth tokens
     const newSocket = io(SOCKET_URL, {
       auth: { token: accessToken, refreshToken },
       withCredentials: true,
@@ -21,17 +17,13 @@ function useSocket(userId, accessToken, refreshToken) {
 
     newSocket.on('connect', () => {
       console.log('Connected to server. Socket ID:', newSocket.id);
-      // Optionally, emit a login event if your server expects it:
       newSocket.emit('login', { userId });
     });
 
-    // Listen for refreshed token from the server
     newSocket.on('tokenRefreshed', (data) => {
       console.log('Received new access token:', data.accessToken);
-      // You might update your global state/context with the new token here.
     });
 
-    // Listen for incoming chat messages
     newSocket.on('chatMessage', (message) => {
       console.log('Received message:', message);
       setMessages((prevMessages) => [...prevMessages, message]);
@@ -53,8 +45,6 @@ function useSocket(userId, accessToken, refreshToken) {
 }
 
 const ChatPage = () => {
-  // For demo purposes, we're using static values.
-  // In a real application these would come from your auth context or state.
   const userId = 'myUser';
   const accessToken = 'dummyAccessToken';
   const refreshToken = 'dummyRefreshToken';
@@ -64,10 +54,8 @@ const ChatPage = () => {
 
   // State to track the currently selected friend for chatting
   const [activeFriend, setActiveFriend] = useState(null);
-  // State for the current chat input text
   const [chatInput, setChatInput] = useState('');
 
-  // Initialize socket connection using our custom hook
   const { messages, sendMessage } = useSocket(userId, accessToken, refreshToken);
 
   // Filter messages to show only those between the current user and the active friend
