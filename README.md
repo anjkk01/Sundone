@@ -26,9 +26,9 @@ Sundone is a full-stack web application designed for **task management and produ
 - **Database:** PostgreSQL
 - **Authentication:** JWT-based
 - **Caching:** Redis
-- **Rate Limiting** Moving Window (IP-Based)
+- **Rate Limiting:** Moving Window (IP-Based)
 - **Real-time Communication:** Socket.IO
-- **Story-Feature Timely Expiration** Bull Queue
+- **Story-Feature Timely Expiration:** Bull Queue
 
 ## Setup & Installation
 
